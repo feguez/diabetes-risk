@@ -1,0 +1,690 @@
+---
+title: "Diabetes Risk Indicators"
+subtitle: "Statistical Analysis of the 2015 BRFSS Dataset"
+author:
+  - Fabrizio Eguez
+  - Tayler Menke
+  - James Chen
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-location: right
+    code-fold: true
+    code-summary: "Show R code"
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+# Run the existing statistical analysis and make its
+# results available to this report.
+source("diabetes_statistical_analysis.R",
+       local = knitr::knit_global())
+```
+
+## Overview
+
+This report investigates associations among body mass index (BMI),
+self-reported high blood pressure, age, income, and diabetes status
+using the 2015 BRFSS Diabetes Health Indicators dataset.
+
+The analysis combines descriptive statistics, confidence intervals,
+hypothesis testing, analysis of variance (ANOVA), and multiple
+linear regression.
+
+The findings are observational and should not be interpreted
+as evidence of causation or as clinically validated risk estimates.
+
+## Dataset
+
+The analysis uses 253,680 survey records with 21 health and
+demographic indicators and one diabetes-status outcome.
+
+The statistical results use conventional unweighted methods
+and do not account for the complex BRFSS survey design.
+
+
+
+## High Blood Pressure Distribution
+
+We first examine the prevalence of self-reported high blood pressure
+among the 253,680 survey respondents.
+
+```{r}
+#| label: tbl-high-bp
+#| echo: false
+#| tbl-cap: "Distribution of Self-Reported High Blood Pressure"
+
+knitr::kable(
+  bp_summary,
+  col.names = c("Blood Pressure Status", "Respondents", "Share (%)"),
+  format = "html"
+)
+```
+
+Approximately 42.9% of respondents reported having high blood
+pressure, compared with 57.1% who did not.
+
+
+
+### High Blood Pressure Visualization
+
+```{r}
+#| label: fig-high-bp
+#| echo: false
+#| fig-cap: "Distribution of self-reported high blood pressure among BRFSS respondents."
+#| fig-width: 8
+#| fig-height: 5
+#| fig-align: center
+
+bp_bars <- barplot(
+  bp_counts,
+  col = c("#A8BED0", "#2E6487"),
+  border = NA,
+  ylim = c(0, max(bp_counts) * 1.15),
+  main = "Self-Reported High Blood Pressure",
+  xlab = "High Blood Pressure Status",
+  ylab = "Number of Respondents"
+)
+
+text(
+  x = bp_bars,
+  y = as.numeric(bp_counts),
+  labels = paste0(
+    format(as.integer(bp_counts), big.mark = ","),
+    " (", bp_percent, "%)"
+  ),
+  pos = 3,
+  cex = 0.9
+)
+```
+
+
+## Body Mass Index (BMI) Analysis
+
+Body Mass Index (BMI) is a quantitative health indicator
+included in the BRFSS dataset. We examine its distribution
+and descriptive statistics to understand the characteristics
+of the surveyed population.
+
+### Descriptive Statistics
+
+```{r}
+#| label: tbl-bmi-summary
+#| echo: false
+#| tbl-cap: "Descriptive Statistics for BMI"
+
+knitr::kable(
+  data.frame(
+    Statistic = names(bmi_stats),
+    Value = round(as.numeric(bmi_stats), 2)
+  ),
+  col.names = c("Statistic", "Value"),
+  format = "html"
+)
+```
+
+The average BMI among the 253,680 respondents was **28.38**,
+with a median of **27** and a standard deviation of **6.61**.
+Observed BMI values ranged from **12 to 98**.
+
+### BMI Distribution
+
+```{r}
+#| label: fig-bmi-distribution
+#| echo: false
+#| fig-cap: "Distribution of BMI across BRFSS respondents."
+#| fig-width: 8
+#| fig-height: 5
+#| fig-align: center
+
+hist(
+  data$BMI,
+  breaks = 30,
+  col = "#A8BED0",
+  border = "white",
+  main = "Distribution of Body Mass Index",
+  xlab = "BMI",
+  ylab = "Number of Respondents"
+)
+```
+
+The distribution is right-skewed, with most BMI values
+concentrated toward the lower end of the observed range
+and a smaller number of respondents reporting substantially
+higher BMI values.
+
+
+
+## BMI by High Blood Pressure Status
+
+To explore the relationship between BMI and high blood pressure,
+we compare BMI distributions among respondents who reported
+high blood pressure and those who did not.
+
+### Group Comparison
+
+```{r}
+#| label: tbl-bmi-by-bp
+#| echo: false
+#| tbl-cap: "BMI Summary by High Blood Pressure Status"
+
+knitr::kable(
+  bmi_by_bp,
+  col.names = c(
+    "Blood Pressure Status",
+    "Respondents",
+    "Mean BMI",
+    "Median BMI",
+    "Standard Deviation"
+  ),
+  format = "html",
+  big.mark = ","
+)
+```
+
+Respondents reporting high blood pressure had a higher average
+BMI (**30.01**) compared with those without high blood
+pressure (**27.16**).
+
+This represents a difference of approximately **2.85 BMI points**.
+
+### Distribution Comparison
+
+```{r}
+#| label: fig-bmi-by-bp
+#| echo: false
+#| fig-cap: "BMI distributions by self-reported high blood pressure status. Outlier points are hidden for readability."
+#| fig-width: 8
+#| fig-height: 5
+#| fig-align: center
+
+boxplot(
+  BMI ~ factor(HighBP,
+               levels = c(0, 1),
+               labels = c("No high BP", "High BP")),
+  data = data,
+  col = c("#A8BED0", "#2E6487"),
+  border = "#334155",
+  outline = FALSE,
+  main = "BMI by High Blood Pressure Status",
+  xlab = "High Blood Pressure Status",
+  ylab = "BMI"
+)
+```
+
+### Interpretation
+
+The boxplot illustrates differences in the central tendency
+and variability of BMI between the two groups.
+
+Respondents with high blood pressure generally had higher
+BMI values than those without high blood pressure.
+
+These findings establish a **descriptive association**,
+not a causal relationship between BMI and high blood pressure.
+
+
+
+## Confidence Interval Analysis
+
+Confidence intervals provide a range of plausible values
+for a population mean, based on sample observations and
+statistical assumptions.
+
+We constructed conventional 95% confidence intervals for
+overall mean BMI and for two age groups: respondents aged
+18–24 and respondents aged 50–54.
+
+### Overall and Age-Group Confidence Intervals
+
+```{r}
+#| label: tbl-bmi-confidence-intervals
+#| echo: false
+#| tbl-cap: "95% Confidence Intervals for Mean BMI"
+
+ci_summary <- data.frame(
+  Group = c(
+    "All respondents",
+    "Ages 18–24",
+    "Ages 50–54"
+  ),
+  Respondents = format(
+    c(n, n1, n2),
+    big.mark = ",",
+    scientific = FALSE,
+    trim = TRUE
+  ),
+  Mean_BMI = round(
+    c(mean_bmi, xbar1, xbar2),
+    2
+  ),
+  CI_95 = c(
+    sprintf("[%.2f, %.2f]", ci95_bmi[1], ci95_bmi[2]),
+    sprintf("[%.2f, %.2f]", ci95_1[1], ci95_1[2]),
+    sprintf("[%.2f, %.2f]", ci95_2[1], ci95_2[2])
+  )
+)
+
+knitr::kable(
+  ci_summary,
+  col.names = c(
+    "Population Group",
+    "Respondents",
+    "Mean BMI",
+    "95% Confidence Interval"
+  ),
+  format = "html",
+  align = c("l", "r", "r", "c")
+)
+```
+
+### Interpretation
+
+**Overall BMI.** The sample mean BMI was 28.38, with a
+conventional 95% confidence interval of [28.36, 28.41].
+The narrow interval reflects the large sample size.
+
+**Age-group comparison.** Respondents aged 18–24 had a
+mean BMI of 26.09, compared with 28.94 among respondents
+aged 50–54.
+
+The corresponding confidence intervals do not overlap,
+and the observed difference in mean BMI is approximately
+2.85 points.
+
+The younger age group has a wider confidence interval,
+consistent with its smaller sample size.
+
+### Statistical Considerations
+
+These intervals use standard unweighted methods that
+assume independent observations. They do not account for
+the BRFSS complex survey sampling design.
+
+Consequently, they should not be interpreted as
+survey-design-adjusted estimates for the U.S. population.
+
+
+
+## Hypothesis Testing
+
+We conducted two hypothesis tests to investigate BMI in the
+surveyed population and its association with reported
+diabetes status.
+
+### Statistical Test Results
+
+```{r}
+#| label: tbl-hypothesis-tests
+#| echo: false
+#| tbl-cap: "Summary of BMI Hypothesis Tests"
+
+# Reuse the exact tests performed in the R script
+one_sample_test <- t.test(
+  data$BMI,
+  mu = 25,
+  alternative = "greater"
+)
+
+two_sample_test <- t.test(
+  no_diabetes,
+  diabetes
+)
+
+test_summary <- data.frame(
+  Test = c(
+    "One-sample t-test",
+    "Welch two-sample t-test"
+  ),
+  Comparison = c(
+    "Mean BMI > 25",
+    "No diabetes vs. diabetes"
+  ),
+  T_Statistic = round(c(
+    one_sample_test$statistic,
+    two_sample_test$statistic
+  ), 2),
+  Degrees_Freedom = round(c(
+    one_sample_test$parameter,
+    two_sample_test$parameter
+  ), 1),
+  P_Value = c(
+    "< 0.001",
+    "< 0.001"
+  )
+)
+
+knitr::kable(
+  test_summary,
+  col.names = c(
+    "Test",
+    "Comparison",
+    "t-statistic",
+    "Degrees of Freedom",
+    "p-value"
+  ),
+  format = "html"
+)
+```
+
+### One-Sample t-Test: Mean BMI Greater Than 25
+
+**Research question:** Is the average BMI greater than 25?
+
+- **Null hypothesis:** Population mean BMI is at most 25.
+- **Alternative hypothesis:** Population mean BMI exceeds 25.
+- **Sample mean BMI:** 28.38
+
+The one-sample t-test produced a t-statistic of approximately
+257.78 (p < 0.001).
+
+We reject the null hypothesis under the conventional test
+assumptions. The observed mean BMI exceeds the benchmark by
+approximately **3.38 BMI points**.
+
+The large sample size contributes to the very high test
+statistic and small p-value.
+
+### Welch Two-Sample t-Test: Diabetes Status
+
+**Research question:** Does mean BMI differ between respondents
+reporting diabetes and those reporting no diabetes?
+
+- **Null hypothesis:** The two groups have equal population mean BMI.
+- **Alternative hypothesis:** Their population mean BMIs differ.
+
+| Reported diabetes status | Mean BMI |
+|---|---:|
+| No diabetes | 27.74 |
+| Diabetes | 31.94 |
+
+The Welch two-sample t-test produced a t-statistic of
+approximately -101.38 (p < 0.001).
+
+Respondents reporting diabetes had a mean BMI approximately
+**4.20 points higher** than respondents reporting no diabetes.
+
+Respondents reporting prediabetes were excluded from this
+two-group comparison.
+
+### Interpretation
+
+Both tests show statistically significant results under
+conventional unweighted assumptions. However, these tests
+do not account for the BRFSS complex survey sampling design.
+
+The findings describe differences and associations in
+reported health indicators; they do not establish causation.
+
+
+
+## BMI Differences Across Age Groups
+
+To investigate how BMI varies across age categories, we compared
+mean BMI across the 13 age groups represented in the BRFSS dataset.
+
+The original age categories were preserved rather than replacing
+them with artificially generated exact ages.
+
+### Mean BMI by Age Group
+
+```{r}
+#| label: fig-bmi-age-groups
+#| echo: false
+#| fig-cap: "Mean BMI across the 13 BRFSS age categories."
+#| fig-width: 9
+#| fig-height: 5
+#| fig-align: center
+
+plot(
+  age_bmi_summary$Age,
+  age_bmi_summary$BMI,
+  type = "b",
+  pch = 19,
+  main = "Mean BMI by Age Group",
+  xlab = "Age Group (1 = 18-24, 13 = 80+)",
+  ylab = "Mean BMI"
+)
+```
+
+Mean BMI generally increases from early adulthood through
+middle age, peaking around ages 45–49, before declining
+among older age groups.
+
+This is a cross-sectional comparison of respondents, not
+evidence of how an individual's BMI changes over time.
+
+### One-Way ANOVA
+
+We conducted a one-way analysis of variance to determine
+whether mean BMI differs across age groups.
+
+**Null hypothesis:** All 13 age groups have equal population
+mean BMI.
+
+**Alternative hypothesis:** At least one age group has a
+different population mean BMI.
+
+```{r}
+#| label: tbl-anova
+#| echo: false
+#| tbl-cap: "One-Way ANOVA: BMI by Age Group"
+
+knitr::kable(
+  as.data.frame(anova_table),
+  digits = 3,
+  format = "html",
+  col.names = c(
+    "Degrees of Freedom",
+    "Sum of Squares",
+    "Mean Square",
+    "F-statistic",
+    "p-value"
+  )
+)
+```
+
+### Effect Size and Interpretation
+
+```{r}
+#| label: tbl-anova-effect
+#| echo: false
+#| tbl-cap: "ANOVA Results and Effect Size"
+
+anova_results <- data.frame(
+  Metric = c(
+    "F-statistic",
+    "Between-group degrees of freedom",
+    "Residual degrees of freedom",
+    "p-value",
+    "Eta-squared",
+    "Variance explained"
+  ),
+  Value = c(
+    round(anova_table$`F value`[1], 1),
+    as.character(anova_table$Df[1]),
+    as.character(anova_table$Df[2]),
+    "< 0.001",
+    round(eta_squared, 4),
+    paste0(round(eta_squared * 100, 2), "%")
+  )
+)
+
+knitr::kable(
+  anova_results,
+  format = "html"
+)
+```
+
+The ANOVA identified statistically significant differences
+in mean BMI across age groups:
+
+**F(12, 253667) = 332.1, p < 0.001.**
+
+However, statistical significance does not necessarily
+indicate a large association.
+
+The eta-squared effect size was approximately **0.0155**,
+meaning age-group membership explained only **1.55% of the
+observed variation in BMI**.
+
+These findings indicate meaningful descriptive differences
+across age categories, but substantial BMI variation remains
+unexplained by age group alone.
+
+As with the other analyses, the conventional ANOVA does not
+account for the complex BRFSS survey sampling design.
+
+
+
+## Multiple Linear Regression
+
+We fitted a multiple linear regression model to examine
+how BMI varies across age and income categories.
+
+Both predictors use their original BRFSS categorical
+values rather than artificially generated exact ages
+or income amounts.
+
+The model is specified as:
+
+\[
+BMI = \beta_0 + \text{Age Group Effects}
++ \text{Income Group Effects} + \varepsilon
+\]
+
+### Model Performance
+
+```{r}
+#| label: tbl-regression-fit
+#| echo: false
+#| tbl-cap: "Multiple Linear Regression Model Summary"
+
+reg_summary <- summary(bmi_group_model)
+f_stat <- reg_summary$fstatistic
+
+model_fit <- data.frame(
+  Metric = c(
+    "Observations",
+    "R-squared",
+    "Adjusted R-squared",
+    "Residual standard error",
+    "F-statistic",
+    "Model p-value"
+  ),
+  Value = c(
+    format(nobs(bmi_group_model), big.mark = ","),
+    sprintf("%.4f", reg_summary$r.squared),
+    sprintf("%.4f", reg_summary$adj.r.squared),
+    sprintf("%.3f", reg_summary$sigma),
+    sprintf(
+      "F(%d, %d) = %.1f",
+      f_stat[2], f_stat[3], f_stat[1]
+    ),
+    "< 0.001"
+  )
+)
+
+knitr::kable(
+  model_fit,
+  col.names = c("Metric", "Value"),
+  format = "html"
+)
+```
+
+The model is statistically significant overall
+(F(19, 253660) = 456.6, p < 0.001).
+
+However, its **R-squared of 0.0331** indicates that age
+and income categories collectively explain only
+approximately **3.31% of the observed variation in BMI**.
+
+This is relatively low explanatory power, suggesting
+that most BMI variation is associated with factors
+outside this model.
+
+### Regression Coefficients
+
+The reference categories are:
+
+- **Age Group 1:** 18–24 years
+- **Income Group 1:** Less than $10,000
+
+Each age-group coefficient represents the estimated
+difference in BMI relative to ages 18–24, holding
+income category constant.
+
+Each income-group coefficient represents the estimated
+difference relative to the lowest income category,
+holding age group constant.
+
+```{r}
+#| label: tbl-regression-coefficients
+#| echo: false
+#| tbl-cap: "Regression Coefficients and 95% Confidence Intervals"
+
+coef_matrix <- reg_summary$coefficients
+ci_matrix <- confint(bmi_group_model, level = 0.95)
+
+coef_table <- data.frame(
+  Predictor = rownames(coef_matrix),
+  Estimate = round(coef_matrix[, 1], 3),
+  CI_Lower = round(ci_matrix[, 1], 3),
+  CI_Upper = round(ci_matrix[, 2], 3),
+  P_Value = ifelse(
+    coef_matrix[, 4] < 0.001,
+    "< 0.001",
+    sprintf("%.3f", coef_matrix[, 4])
+  ),
+  row.names = NULL
+)
+
+knitr::kable(
+  coef_table,
+  col.names = c(
+    "Predictor",
+    "Estimate",
+    "95% CI Lower",
+    "95% CI Upper",
+    "p-value"
+  ),
+  format = "html"
+)
+```
+
+### Key Findings
+
+**Age differences.** Respondents aged 45–49
+(Age Group 6) had an estimated BMI approximately
+**3.44 points higher** than respondents aged 18–24,
+holding income category constant.
+
+**Income differences.** Respondents in the highest
+income category ($75,000 or more) had an estimated
+BMI approximately **2.40 points lower** than those
+in the lowest income category, holding age group
+constant.
+
+**Older age groups.** Age Group 13 (80+) was not
+statistically significantly different from
+Age Group 1 after adjusting for income
+(p = 0.191).
+
+### Interpretation and Limitations
+
+Although the regression is statistically significant,
+its explanatory power is limited.
+
+Age and income categories capture only a small
+portion of BMI variation in this dataset.
+
+The results describe statistical associations,
+not causal effects.
+---

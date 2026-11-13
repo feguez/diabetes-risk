@@ -1,0 +1,26 @@
+
+# R temporary files
+.Rhistory
+.RData
+.Rproj.user/
+
+# Quarto temporary files
+.quarto/
+*_cache/
+
+# Windows system files
+desktop.ini
+Thumbs.db
+
+# Original coursework files
+originals/*
+
+# Retain the original dataset for reproducibility
+!originals/diabetes_012_health_indicators_BRFSS2015.csv
+
+# Python modeling - to be published in Phase 2
+diabetes_risk_modeling.ipynb
+
+# Python temporary files
+__pycache__/
+.ipynb_checkpoints/
