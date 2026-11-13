@@ -46,11 +46,11 @@ The project includes a Quarto HTML report with statistical tables, visualization
 
 
 
-- `diabetes_statistical_analysis.html` — Rendered report
+- `diabetes_statistical_analysis.html` : Rendered report
 
-- `diabetes_statistical_analysis.qmd` — Quarto report source
+- `diabetes_statistical_analysis.qmd` : Quarto report source
 
-- `diabetes_statistical_analysis.R` — Original statistical analysis
+- `diabetes_statistical_analysis.R` : Original statistical analysis
 
 
 
@@ -100,7 +100,6 @@ Run `diabetes_statistical_analysis.R` from the repository root using R, or rende
 
 
 
-A complementary Python/XGBoost modeling component is under development and will be added to this repository following its methodology and reproducibility review.
-
+XGBoost model + Python analysis pending upload - cleaning/reviewing first before adding to the repo. Coming soon.
 
 
