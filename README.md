@@ -1,5 +1,3 @@
-
-
 \# Diabetes Risk Indicators | Statistical Analysis
 
 
