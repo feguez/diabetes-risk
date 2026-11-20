@@ -100,6 +100,8 @@ Run `diabetes_statistical_analysis.R` from the repository root using R, or rende
 
 
 
-XGBoost model + Python analysis pending upload - cleaning/reviewing first before adding to the repo. Coming soon.
+The Python modeling analysis is now available in diabetes_risk_modeling.ipynb.
 
+The notebook explores diabetes classification using logistic regression and three XGBoost configurations: baseline, hyperparameter-tuned, and class-weighted.
 
+Am still cleaning the notebook up a bit, but the analysis and results are there.
